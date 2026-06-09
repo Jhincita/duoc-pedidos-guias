@@ -58,11 +58,18 @@ jobs:
           key: ${{ secrets.GCP_SSH_PRIVATE_KEY }}
           script: |
             cd ~/app
-            # Create .env file with GCS secrets (database is already hardcoded in compose)
-            echo "GCS_BUCKET_NAME=${{ secrets.GCS_BUCKET_NAME }}" > .env
-            echo "GCS_ACCESS_KEY=${{ secrets.GCS_ACCESS_KEY }}" >> .env
-            echo "GCS_SECRET_KEY=${{ secrets.GCS_SECRET_KEY }}" >> .env
-            # Pull latest images
+            cat > .env << 'EOF'
+            DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}
+            PEDIDOS_DB_URL=${{ secrets.PEDIDOS_DB_URL }}
+            PEDIDOS_DB_USERNAME=${{ secrets.PEDIDOS_DB_USERNAME }}
+            PEDIDOS_DB_PASSWORD=${{ secrets.PEDIDOS_DB_PASSWORD }}
+            GUIAS_DB_URL=${{ secrets.GUIAS_DB_URL }}
+            GUIAS_DB_USERNAME=${{ secrets.GUIAS_DB_USERNAME }}
+            GUIAS_DB_PASSWORD=${{ secrets.GUIAS_DB_PASSWORD }}
+            GCS_BUCKET_NAME=${{ secrets.GCS_BUCKET_NAME }}
+            GCS_ACCESS_KEY=${{ secrets.GCS_ACCESS_KEY }}
+            GCS_SECRET_KEY=${{ secrets.GCS_SECRET_KEY }}
+            EOF
+            docker compose down
             docker compose pull
-            # Restart containers
             docker compose up -d
