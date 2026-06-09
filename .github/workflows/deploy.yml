@@ -1,32 +1,75 @@
-version: '3.8'
+name: CI/CD Pipeline
 
-services:
-  ms-pedidos:
-    image: ${DOCKERHUB_USERNAME}/ms-pedidos:latest
-    container_name: ms-pedidos
-    ports:
-      - "8081:8081"
-    environment:
-      DB_URL: ${PEDIDOS_DB_URL}
-      DB_USERNAME: ${PEDIDOS_DB_USERNAME}
-      DB_PASSWORD: ${PEDIDOS_DB_PASSWORD}
-    restart: unless-stopped
+on:
+  push:
+    branches: [ main ]
 
-  ms-guias:
-    image: ${DOCKERHUB_USERNAME}/ms-guias:latest
-    container_name: ms-guias
-    ports:
-      - "8082:8082"
-    depends_on:
-      - ms-pedidos
-    environment:
-      DB_URL: ${GUIAS_DB_URL}
-      DB_USERNAME: ${GUIAS_DB_USERNAME}
-      DB_PASSWORD: ${GUIAS_DB_PASSWORD}
-      PEDIDOS_SERVICE_URL: http://ms-pedidos:8081
-      GCS_BUCKET_NAME: ${GCS_BUCKET_NAME}
-      GCS_ACCESS_KEY: ${GCS_ACCESS_KEY}
-      GCS_SECRET_KEY: ${GCS_SECRET_KEY}
-    volumes:
-      - ./efs-data:/app/efs
-    restart: unless-stopped
+env:
+  DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+  DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Build ms-pedidos JAR
+        run: |
+          cd sistema-gestion-pedidos
+          mvn clean package -DskipTests
+
+      - name: Build ms-guias JAR
+        run: |
+          cd ms-guias
+          mvn clean package -DskipTests
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ env.DOCKERHUB_USERNAME }}
+          password: ${{ env.DOCKERHUB_TOKEN }}
+
+      - name: Build and push ms-pedidos
+        uses: docker/build-push-action@v5
+        with:
+          context: ./sistema-gestion-pedidos
+          push: true
+          tags: ${{ env.DOCKERHUB_USERNAME }}/ms-pedidos:latest
+
+      - name: Build and push ms-guias
+        uses: docker/build-push-action@v5
+        with:
+          context: ./ms-guias
+          push: true
+          tags: ${{ env.DOCKERHUB_USERNAME }}/ms-guias:latest
+
+      - name: Deploy to GCP VM
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.GCP_VM_IP }}
+          username: ${{ secrets.GCP_VM_USER }}
+          key: ${{ secrets.GCP_SSH_PRIVATE_KEY }}
+          script: |
+            cd ~/app
+            cat > .env << 'EOF'
+            DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}
+            PEDIDOS_DB_URL=${{ secrets.PEDIDOS_DB_URL }}
+            PEDIDOS_DB_USERNAME=${{ secrets.PEDIDOS_DB_USERNAME }}
+            PEDIDOS_DB_PASSWORD=${{ secrets.PEDIDOS_DB_PASSWORD }}
+            GUIAS_DB_URL=${{ secrets.GUIAS_DB_URL }}
+            GUIAS_DB_USERNAME=${{ secrets.GUIAS_DB_USERNAME }}
+            GUIAS_DB_PASSWORD=${{ secrets.GUIAS_DB_PASSWORD }}
+            GCS_BUCKET_NAME=${{ secrets.GCS_BUCKET_NAME }}
+            GCS_ACCESS_KEY=${{ secrets.GCS_ACCESS_KEY }}
+            GCS_SECRET_KEY=${{ secrets.GCS_SECRET_KEY }}
+            EOF
+            docker compose down
+            docker compose pull
+            docker compose up -d

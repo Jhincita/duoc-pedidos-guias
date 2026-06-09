@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  ms-pedidos:
+    image: ${DOCKERHUB_USERNAME}/ms-pedidos:latest
+    container_name: ms-pedidos
+    ports:
+      - "8081:8081"
+    environment:
+      DB_URL: ${PEDIDOS_DB_URL}
+      DB_USERNAME: ${PEDIDOS_DB_USERNAME}
+      DB_PASSWORD: ${PEDIDOS_DB_PASSWORD}
+    restart: unless-stopped
+
+  ms-guias:
+    image: ${DOCKERHUB_USERNAME}/ms-guias:latest
+    container_name: ms-guias
+    ports:
+      - "8082:8082"
+    depends_on:
+      - ms-pedidos
+    environment:
+      DB_URL: ${GUIAS_DB_URL}
+      DB_USERNAME: ${GUIAS_DB_USERNAME}
+      DB_PASSWORD: ${GUIAS_DB_PASSWORD}
+      PEDIDOS_SERVICE_URL: http://ms-pedidos:8081
+      GCS_BUCKET_NAME: ${GCS_BUCKET_NAME}
+      GCS_ACCESS_KEY: ${GCS_ACCESS_KEY}
+      GCS_SECRET_KEY: ${GCS_SECRET_KEY}
+    volumes:
+      - ./efs-data:/app/efs
+    restart: unless-stopped
