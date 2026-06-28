@@ -1,6 +1,5 @@
 package cl.duoc.ms_guias.config;
 
-
 import org.springframework.security.core.GrantedAuthority;
 import java.util.ArrayList;
 import java.util.List;
@@ -22,9 +21,6 @@ import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.web.SecurityFilterChain;
 
-import java.util.ArrayList;
-import java.util.List;
-
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
@@ -42,10 +38,18 @@ public class SecurityConfig {
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        // 1. ADMIN: crear, modificar, eliminar guías
                         .requestMatchers(HttpMethod.POST,   "/api/guias/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT,    "/api/guias/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/guias/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.GET,    "/api/guias/**").hasAnyRole("ADMIN", "CONSULTA")
+
+                        // 2. AMBOS (ADMIN y CONSULTA): descargar guía (cualquier id)
+                        .requestMatchers(HttpMethod.GET, "/api/guias/*/descargar").hasAnyRole("ADMIN", "CONSULTA")
+
+                        // 3. ADMIN: consultar, listar y obtener por ID (todo lo demás de GET)
+                        .requestMatchers(HttpMethod.GET, "/api/guias/**").hasRole("ADMIN")
+
+                        // 4. Cualquier otra petición requiere autenticación
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2
