@@ -50,26 +50,68 @@ jobs:
           push: true
           tags: ${{ env.DOCKERHUB_USERNAME }}/ms-guias:latest
 
-      - name: Deploy to GCP VM
+      - name: Deploy to EC2
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.GCP_VM_IP }}
-          username: ${{ secrets.GCP_VM_USER }}
-          key: ${{ secrets.GCP_SSH_PRIVATE_KEY }}
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             cd ~/app
+            
             cat > .env << 'EOF'
             DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}
-            PEDIDOS_DB_URL=${{ secrets.PEDIDOS_DB_URL }}
-            PEDIDOS_DB_USERNAME=${{ secrets.PEDIDOS_DB_USERNAME }}
-            PEDIDOS_DB_PASSWORD=${{ secrets.PEDIDOS_DB_PASSWORD }}
-            GUIAS_DB_URL=${{ secrets.GUIAS_DB_URL }}
-            GUIAS_DB_USERNAME=${{ secrets.GUIAS_DB_USERNAME }}
-            GUIAS_DB_PASSWORD=${{ secrets.GUIAS_DB_PASSWORD }}
-            GCS_BUCKET_NAME=${{ secrets.GCS_BUCKET_NAME }}
-            GCS_ACCESS_KEY=${{ secrets.GCS_ACCESS_KEY }}
-            GCS_SECRET_KEY=${{ secrets.GCS_SECRET_KEY }}
+            DB_URL=${{ secrets.DB_URL }}
+            DB_USERNAME=${{ secrets.DB_USERNAME }}
+            DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+            AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
+            AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            AWS_S3_BUCKET=${{ secrets.AWS_S3_BUCKET }}
+            AWS_S3_REGION=${{ secrets.AWS_S3_REGION }}
+            AZURE_JWKS_URI=${{ secrets.AZURE_JWKS_URI }}
+            AZURE_ISSUER_URI=${{ secrets.AZURE_ISSUER_URI }}
             EOF
-            docker compose down
-            docker compose pull
-            docker compose up -d
+            
+            cat > docker-compose.yml << 'COMPOSE_EOF'
+            version: '3.8'
+
+            services:
+              ms-pedidos:
+                image: ${DOCKERHUB_USERNAME}/ms-pedidos:latest
+                container_name: ms-pedidos
+                ports:
+                  - "8081:8081"
+                environment:
+                  DB_URL: ${DB_URL}
+                  DB_USERNAME: ${DB_USERNAME}
+                  DB_PASSWORD: ${DB_PASSWORD}
+                  AZURE_JWKS_URI: ${AZURE_JWKS_URI}
+                  AZURE_ISSUER_URI: ${AZURE_ISSUER_URI}
+                restart: unless-stopped
+
+              ms-guias:
+                image: ${DOCKERHUB_USERNAME}/ms-guias:latest
+                container_name: ms-guias
+                ports:
+                  - "8082:8082"
+                depends_on:
+                  - ms-pedidos
+                environment:
+                  DB_URL: ${DB_URL}
+                  DB_USERNAME: ${DB_USERNAME}
+                  DB_PASSWORD: ${DB_PASSWORD}
+                  PEDIDOS_SERVICE_URL: http://ms-pedidos:8081
+                  AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+                  AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+                  AWS_S3_BUCKET: ${AWS_S3_BUCKET}
+                  AWS_S3_REGION: ${AWS_S3_REGION}
+                  AZURE_JWKS_URI: ${AZURE_JWKS_URI}
+                  AZURE_ISSUER_URI: ${AZURE_ISSUER_URI}
+                volumes:
+                  - ./efs-data:/app/efs
+                restart: unless-stopped
+            COMPOSE_EOF
+            
+            docker-compose down || true
+            docker-compose pull
+            docker-compose up -d
