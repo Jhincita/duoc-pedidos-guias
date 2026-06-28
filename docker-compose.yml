@@ -7,9 +7,9 @@ services:
     ports:
       - "8081:8081"
     environment:
-      DB_URL: ${PEDIDOS_DB_URL}
-      DB_USERNAME: ${PEDIDOS_DB_USERNAME}
-      DB_PASSWORD: ${PEDIDOS_DB_PASSWORD}
+      DB_URL: ${DB_URL}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
       AZURE_JWKS_URI: ${AZURE_JWKS_URI}
       AZURE_ISSUER_URI: ${AZURE_ISSUER_URI}
     restart: unless-stopped
@@ -22,13 +22,14 @@ services:
     depends_on:
       - ms-pedidos
     environment:
-      DB_URL: ${GUIAS_DB_URL}
-      DB_USERNAME: ${GUIAS_DB_USERNAME}
-      DB_PASSWORD: ${GUIAS_DB_PASSWORD}
+      DB_URL: ${DB_URL}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
       PEDIDOS_SERVICE_URL: http://ms-pedidos:8081
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
-      AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN:-}
+      AWS_S3_BUCKET: ${AWS_S3_BUCKET}
+      AWS_S3_REGION: ${AWS_S3_REGION}
       AZURE_JWKS_URI: ${AZURE_JWKS_URI}
       AZURE_ISSUER_URI: ${AZURE_ISSUER_URI}
     volumes:
