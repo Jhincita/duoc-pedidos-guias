@@ -29,10 +29,10 @@ import java.util.List;
 @EnableWebSecurity
 public class SecurityConfig {
 
-    @Value("${azure.ad.jwk-set-uri}")
+    @Value("${azure.jwks.uri}")
     private String jwkSetUri;
 
-    @Value("${azure.ad.issuer-uri}")
+    @Value("${azure.issuer.uri}")
     private String issuerUri;
 
     @Bean
