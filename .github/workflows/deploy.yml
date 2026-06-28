@@ -50,6 +50,15 @@ jobs:
           push: true
           tags: ${{ env.DOCKERHUB_USERNAME }}/ms-guias:latest
 
+      - name: Copy Docker Compose file to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "docker-compose.yml"
+          target: "~/app"
+
       - name: Deploy to EC2
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -57,17 +66,29 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
+            mkdir -p ~/app
             cd ~/app
             cat > .env << 'EOF'
             DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}
-            DB_URL=${{ secrets.DB_URL }}
-            DB_USERNAME=${{ secrets.DB_USERNAME }}
-            DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+            PEDIDOS_DB_URL=${{ secrets.DB_URL }}
+            PEDIDOS_DB_USERNAME=${{ secrets.DB_USERNAME }}
+            PEDIDOS_DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+            GUIAS_DB_URL=${{ secrets.DB_URL }}
+            GUIAS_DB_USERNAME=${{ secrets.DB_USERNAME }}
+            GUIAS_DB_PASSWORD=${{ secrets.DB_PASSWORD }}
             AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
             AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
             AZURE_JWKS_URI=${{ secrets.AZURE_JWKS_URI }}
             AZURE_ISSUER_URI=${{ secrets.AZURE_ISSUER_URI }}
             EOF
-            docker compose down
-            docker compose pull
-            docker compose up -d
+            if docker compose version >/dev/null 2>&1; then
+              COMPOSE_CMD="docker compose"
+            elif command -v docker-compose >/dev/null 2>&1; then
+              COMPOSE_CMD="docker-compose"
+            else
+              echo "Neither docker compose nor docker-compose is installed" >&2
+              exit 1
+            fi
+            $COMPOSE_CMD down
+            $COMPOSE_CMD pull
+            $COMPOSE_CMD up -d
