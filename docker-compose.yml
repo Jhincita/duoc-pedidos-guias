@@ -10,6 +10,8 @@ services:
       DB_URL: ${PEDIDOS_DB_URL}
       DB_USERNAME: ${PEDIDOS_DB_USERNAME}
       DB_PASSWORD: ${PEDIDOS_DB_PASSWORD}
+      AZURE_JWKS_URI: ${AZURE_JWKS_URI}
+      AZURE_ISSUER_URI: ${AZURE_ISSUER_URI}
     restart: unless-stopped
 
   ms-guias:
@@ -24,9 +26,11 @@ services:
       DB_USERNAME: ${GUIAS_DB_USERNAME}
       DB_PASSWORD: ${GUIAS_DB_PASSWORD}
       PEDIDOS_SERVICE_URL: http://ms-pedidos:8081
-      GCS_BUCKET_NAME: ${GCS_BUCKET_NAME}
-      GCS_ACCESS_KEY: ${GCS_ACCESS_KEY}
-      GCS_SECRET_KEY: ${GCS_SECRET_KEY}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN:-}
+      AZURE_JWKS_URI: ${AZURE_JWKS_URI}
+      AZURE_ISSUER_URI: ${AZURE_ISSUER_URI}
     volumes:
       - ./efs-data:/app/efs
     restart: unless-stopped

@@ -44,7 +44,7 @@ public class PedidoService {
 
     public List<Pedido> consultarPedidos(String transportista, LocalDateTime inicio, LocalDateTime fin) {
         if (transportista == null && inicio == null && fin == null) {
-            return pedidoRepo.findAll();  // o usa un método findAll()
+            return pedidoRepo.findAll();
         }
         if (transportista != null && inicio != null && fin != null) {
             return pedidoRepo.findByTransportistaAndFechaCreacionBetween(transportista, inicio, fin);
