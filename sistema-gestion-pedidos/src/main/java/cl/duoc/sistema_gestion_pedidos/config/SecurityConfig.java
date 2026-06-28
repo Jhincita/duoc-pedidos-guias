@@ -46,6 +46,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT,    "/api/pedidos/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/pedidos/**").hasRole("ADMIN")
 
+                        // Permitir GET por ID sin token (llamada interna de ms-guias)
+                        .requestMatchers(HttpMethod.GET, "/api/pedidos/{id}").permitAll()
+
                         .requestMatchers(HttpMethod.GET, "/api/pedidos/**").hasAnyRole("ADMIN", "CONSULTA")
                         .requestMatchers(HttpMethod.GET, "/api/pedidos").hasAnyRole("ADMIN", "CONSULTA")
 

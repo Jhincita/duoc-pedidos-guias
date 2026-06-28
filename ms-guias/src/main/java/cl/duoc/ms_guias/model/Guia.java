@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 @Data
 public class Guia {
     @Id
-    private String id;            // puede ser el mismo ID del pedido o UUID
+    private String id;
     private String pedidoId;
     private String transportista;
     private String destinatario;
@@ -16,7 +16,7 @@ public class Guia {
     private String destino;
     private Double peso;
     private Double monto;
-    private String s3Key;          // clave en S3 (ej: 202511/transportistaX/guia_abc.pdf)
+    private String s3Key;
     private LocalDateTime fechaGeneracion;
     private LocalDateTime fechaActualizacion;
     private String estado;         // GENERADA, SUBIDA, ELIMINADA
