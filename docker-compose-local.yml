@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq-guias
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin123
+    restart: unless-stopped
+
+  ms-pedidos:
+    build: ./sistema-gestion-pedidos
+    container_name: ms-pedidos
+    ports:
+      - "8081:8081"
+    environment:
+      DB_URL: ${DB_URL}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      AZURE_JWKS_URI: ${AZURE_JWKS_URI}
+      AZURE_ISSUER_URI: ${AZURE_ISSUER_URI}
+    restart: unless-stopped
+
+  ms-guias:
+    build: ./ms-guias
+    container_name: ms-guias
+    ports:
+      - "8082:8082"
+    depends_on:
+      - ms-pedidos
+      - rabbitmq
+    environment:
+      DB_URL: ${DB_URL}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      PEDIDOS_SERVICE_URL: http://ms-pedidos:8081
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_S3_BUCKET: ${AWS_S3_BUCKET}
+      AWS_S3_REGION: ${AWS_S3_REGION}
+      AZURE_JWKS_URI: ${AZURE_JWKS_URI}
+      AZURE_ISSUER_URI: ${AZURE_ISSUER_URI}
+    volumes:
+      - ./efs-data:/app/efs
+    restart: unless-stopped
