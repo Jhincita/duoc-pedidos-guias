@@ -3,7 +3,10 @@ package cl.duoc.ms_guias.service;
 import cl.duoc.ms_guias.dto.PedidoDTO;
 import cl.duoc.ms_guias.model.Guia;
 import cl.duoc.ms_guias.repository.GuiaRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.io.IOException;
@@ -11,6 +14,8 @@ import java.time.LocalDateTime;
 
 @Service
 public class GuiaService {
+
+    private static final Logger log = LoggerFactory.getLogger(GuiaService.class);
 
     @Autowired
     private GuiaRepository guiaRepository;
@@ -26,6 +31,12 @@ public class GuiaService {
 
     @Autowired
     private S3StorageService s3Storage;
+
+    @Autowired
+    private GuiaProducerService guiaProducerService;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     // Crear guía a partir de un pedido existente
     public Guia crearGuiaDesdePedido(String pedidoId) throws IOException {
@@ -58,7 +69,18 @@ public class GuiaService {
         // Limpiar temporal
         efsStorage.deleteTempFile(tempPath);
 
-        return guiaRepository.save(guia);
+        Guia guiaGuardada = guiaRepository.save(guia);
+
+        // === ENVIAR A RABBITMQ COLA 1 ===
+        try {
+            String json = objectMapper.writeValueAsString(guiaGuardada);
+            guiaProducerService.enviarGuiaACola(json);
+            log.info("Guía {} enviada a Cola 1 de RabbitMQ", guiaGuardada.getId());
+        } catch (Exception e) {
+            log.error("Error al enviar guía {} a RabbitMQ: {}", guiaGuardada.getId(), e.getMessage());
+        }
+
+        return guiaGuardada;
     }
 
     // Descargar guía

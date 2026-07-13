@@ -19,7 +19,7 @@ public class GuiaConsumerService {
 
     public GuiaConsumerService(GuiaDespachoQRepository queueRepository, ObjectMapper objectMapper) {
         this.queueRepository = queueRepository;
-        this.objectMapper = new ObjectMapper();
+        this.objectMapper = objectMapper;
     }
 
     @RabbitListener(queues = "${rabbitmq.queue.guias}")

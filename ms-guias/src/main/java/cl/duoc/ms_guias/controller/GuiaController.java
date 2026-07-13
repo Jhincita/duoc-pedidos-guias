@@ -3,8 +3,6 @@ package cl.duoc.ms_guias.controller;
 import cl.duoc.ms_guias.dto.PedidoDTO;
 import cl.duoc.ms_guias.model.Guia;
 import cl.duoc.ms_guias.service.GuiaService;
-import cl.duoc.ms_guias.service.GuiaProducerService;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.*;
@@ -21,24 +19,10 @@ public class GuiaController {
     @Autowired
     private GuiaService guiaService;
 
-    @Autowired
-    private GuiaProducerService guiaProducerService;
-
-    private final ObjectMapper objectMapper = new ObjectMapper();
-
     // Crear guía a partir de un pedido existente
     @PostMapping("/crear-desde-pedido/{pedidoId}")
     public ResponseEntity<Guia> crearGuia(@PathVariable String pedidoId) throws IOException {
         Guia guia = guiaService.crearGuiaDesdePedido(pedidoId);
-
-        try {
-            String mensajeJson = objectMapper.writeValueAsString(guia);
-            guiaProducerService.enviarGuiaACola(mensajeJson);
-        } catch (Exception e) {
-            // Si falla el envío, el mensaje va automáticamente a Cola 2
-            // gracias a la configuración del Dead Letter Exchange
-        }
-
         return new ResponseEntity<>(guia, HttpStatus.CREATED);
     }
 
