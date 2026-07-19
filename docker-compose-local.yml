@@ -25,9 +25,9 @@ services:
       AZURE_ISSUER_URI: ${AZURE_ISSUER_URI}
     restart: unless-stopped
 
-  ms-guias:
-    build: ./ms-guias
-    container_name: ms-guias
+  ms-producer:
+    build: ./ms-producer
+    container_name: ms-producer
     ports:
       - "8082:8082"
     depends_on:
@@ -46,4 +46,17 @@ services:
       AZURE_ISSUER_URI: ${AZURE_ISSUER_URI}
     volumes:
       - ./efs-data:/app/efs
+    restart: unless-stopped
+
+  ms-consumer:
+    build: ./ms-consumer
+    container_name: ms-consumer
+    ports:
+      - "8083:8083"
+    depends_on:
+      - rabbitmq
+    environment:
+      DB_URL: ${DB_URL}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
     restart: unless-stopped
