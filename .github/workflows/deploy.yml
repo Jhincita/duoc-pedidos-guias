@@ -19,9 +19,13 @@ jobs:
         run: |
           cd sistema-gestion-pedidos
           mvn clean package -DskipTests
-      - name: Build ms-guias JAR
+      - name: Build ms-producer JAR
         run: |
-          cd ms-guias
+          cd ms-producer
+          mvn clean package -DskipTests
+      - name: Build ms-consumer JAR
+        run: |
+          cd ms-consumer
           mvn clean package -DskipTests
       - name: Login to Docker Hub
         uses: docker/login-action@v3
@@ -34,12 +38,18 @@ jobs:
           context: ./sistema-gestion-pedidos
           push: true
           tags: ${{ env.DOCKERHUB_USERNAME }}/ms-pedidos:latest
-      - name: Build and push ms-guias
+      - name: Build and push ms-producer
         uses: docker/build-push-action@v5
         with:
-          context: ./ms-guias
+          context: ./ms-producer
           push: true
-          tags: ${{ env.DOCKERHUB_USERNAME }}/ms-guias:latest
+          tags: ${{ env.DOCKERHUB_USERNAME }}/ms-producer:latest
+      - name: Build and push ms-consumer
+        uses: docker/build-push-action@v5
+        with:
+          context: ./ms-consumer
+          push: true
+          tags: ${{ env.DOCKERHUB_USERNAME }}/ms-consumer:latest
       - name: Deploy to EC2
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -89,9 +99,9 @@ jobs:
                 depends_on:
                   - rabbitmq
                 restart: unless-stopped
-              ms-guias:
-                image: ${DOCKERHUB_USERNAME}/ms-guias:latest
-                container_name: ms-guias
+              ms-producer:
+                image: ${DOCKERHUB_USERNAME}/ms-producer:latest
+                container_name: ms-producer
                 ports:
                   - "8082:8082"
                 depends_on:
@@ -110,6 +120,18 @@ jobs:
                   AZURE_ISSUER_URI: ${AZURE_ISSUER_URI}
                 volumes:
                   - ./efs-data:/app/efs
+                restart: unless-stopped
+              ms-consumer:
+                image: ${DOCKERHUB_USERNAME}/ms-consumer:latest
+                container_name: ms-consumer
+                ports:
+                  - "8083:8083"
+                depends_on:
+                  - rabbitmq
+                environment:
+                  DB_URL: ${DB_URL}
+                  DB_USERNAME: ${DB_USERNAME}
+                  DB_PASSWORD: ${DB_PASSWORD}
                 restart: unless-stopped
             COMPOSE_EOF
 
